@@ -319,7 +319,7 @@ for runObj in runsGen:
         run_info = {
             "run_id": safe_getattr(runObj, "run_id"),
             "job_id": safe_getattr(runObj, "job_id"),
-            "task_key": safe_getattr(runObj, "task_key"),
+            "task_key": safe_getattr(task, "task_key"),
             "run_name": safe_getattr(runObj, "run_name"),
             "notebook_task_base_params" : safe_getattr(task, "notebook_task.base_parameters.values", "N/A"),
             "notebook_task_path" : safe_getattr(task, "notebook_task.notebook_path", "N/A"),
@@ -595,6 +595,11 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC select * from gradient_usage_predictions.job_run_info
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC select 'all runs tasks', count(distinct run_id, task_key) counts from gradient_usage_predictions.job_run_info
 # MAGIC union
 # MAGIC select 'tasks with cluster definition', count(distinct run_id, task_key) from gradient_usage_predictions.job_run_cluster_info
@@ -692,7 +697,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC        count(distinct jri.run_name || jri.task_key) job_task_count,
 # MAGIC        count(distinct jri.run_id) run_count
 # MAGIC   from gradient_usage_predictions.job_run_info jri
-# MAGIC   left join gradient_usage_predictions.all_job_clusters ajc on (jri.job_id = ajc.job_id and jri.task_key = ajc.task_key) 
+# MAGIC   join gradient_usage_predictions.all_job_clusters ajc on (jri.job_id = ajc.job_id and jri.task_key = ajc.task_key) 
 # MAGIC  group by to_date(from_unixtime(jri.run_starttime/1000)), jri.run_type, ajc.compute_definition
 # MAGIC  order by day asc
 
