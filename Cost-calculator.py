@@ -290,7 +290,7 @@ import datetime
 from pyspark.sql.functions import col
 from databricks.sdk.service.jobs import ListRunsRunType
 
-start_date = datetime.datetime.now() - datetime.timedelta(int(dbutils.widgets.get("days back")))
+start_date = (datetime.datetime.now().replace(minute=0, hour=0, second=0, microsecond=0) - datetime.timedelta(int(dbutils.widgets.get("days back"))))
 start_date = start_date.timestamp() * 1000
 
 runsGen = w.jobs.list_runs(start_time_from=start_date, expand_tasks=True, completed_only=True)
