@@ -670,9 +670,8 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC   from gradient_usage_predictions.job_run_info jri
 # MAGIC   join gradient_usage_predictions.all_job_clusters ajc on jri.job_id = ajc.job_id and jri.task_key = ajc.task_key
 # MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dd on dd.instance_type = ajc.driver_node
-# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dw on dw.instance_type = ajc.worker_node
-# MAGIC  where ajc.compute_definition = 'Jobs Compute'
-# MAGIC
+# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dw on dw.instance_type = ajc.worker_node;
+# MAGIC  
 
 # COMMAND ----------
 
@@ -755,10 +754,10 @@ calc = f"""select '{str(start_date_truncated)} - {str(end_date_truncated)}',
             count(distinct run_id) runs,
             round(sum(dbus),2) dbus,
             round(sum(core_hrs),2) core_hrs,
-            round(sum(dbus) * {yr_mult},2) est_dbus,
-            round(sum(core_hrs) * {yr_mult},2) est_core_hrs,
-            round(sum(dbus) * {yr_mult} * .20, 2) est_dbu_cost,
-            round(sum(core_hrs) * {yr_mult} * .006,2) est_core_hr_cost
+            round(sum(dbus) * {yr_mult},2) est_annual_job_dbus,
+            round(sum(core_hrs) * {yr_mult},2) est_annual_core_hrs,
+            round(sum(dbus) * {yr_mult} * .20, 2) est_annual_job_dbu_cost,
+            round(sum(core_hrs) * {yr_mult} * .006,2) est_annual_core_hr_cost
          from gradient_usage_predictions.run_usage
          where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) >= '{str(start_date_truncated)}'
            and date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) <  '{str(end_date_truncated)}'"""
