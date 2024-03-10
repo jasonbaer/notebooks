@@ -395,7 +395,7 @@ for runObj in runsGen:
                 if single_cluster is not None:
                     run_clusters.append(single_cluster)
                 else: # Unable to log
-                    no_data.append({"job_id": runObj.job_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": task.existing_cluster_id, "Status": "APC not in cluster list and can't be retrieved"}) 
+                    no_data.append({"job_id": runObj.job_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.existing_cluster_id, "Status": "APC not in cluster list and can't be retrieved"}) 
         else:  # Jobs Compute
             if hasattr(task, "job_cluster_key") == False: #defined in Task
                 if task.new_cluster is not None: 
@@ -437,9 +437,9 @@ for runObj in runsGen:
                         if single_cluster is not None:
                             run_clusters.append(single_cluster)
                         else: 
-                            no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": task.cluster_instance.cluster_id, "Status": "Unable to lookup job cluster"})
+                            no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.cluster_instance.cluster_id, "Status": "Unable to lookup job cluster"})
                     else:
-                        no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": "unknown", "Status": "Not defined and no cluster instance"})
+                        no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": "unknown", "Status": "Not defined and no cluster instance"})
     
             else: # shared Jobs Compute
                 for cluster in runObj.job_clusters:
