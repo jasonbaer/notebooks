@@ -62,6 +62,51 @@ def safe_getattr(obj, attr, default=None):
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## Get Single Cluster By ID
+# MAGIC This is needed for any cluster not returned by the list calls
+
+# COMMAND ----------
+
+def get_cluster(job_id, run_id, task_key, cluster_id, compute_definition):
+    try:
+        clusterObj = w.clusters.get(cluster_id)
+        row = {
+                "job_id": job_id,
+                "run_id": run_id,
+                "task_key": task_key,                        
+                "cluster_identifier": cluster_id,
+                "compute_definition": compute_definition,
+                "aws_attributes_availability": safe_getattr(clusterObj, "aws_attributes.availability.value", "None"),
+                "enable_elastic_disk": str(safe_getattr(clusterObj, "enable_elastic_disk")),
+                "enable_local_disk_encryption": safe_getattr(clusterObj, "enable_local_disk_encryption"),
+                "workload_type_jobs": safe_getattr(clusterObj, "workload_type.clients.jobs", "None"),
+                "aws_attributes_ebs_volume_count": safe_getattr(clusterObj, "aws_attributes.ebs_volume_count", 0),
+                "aws_attributes_ebs_volume_iops": safe_getattr(clusterObj, "aws_attributes.ebs_volume_iops", 0),
+                "aws_attributes_ebs_volume_size": safe_getattr(clusterObj, "aws_attributes.ebs_volume_size", 0),
+                "aws_attributes_ebs_volume_throughput": safe_getattr(clusterObj, "aws_attributes.ebs_volume_throughput", 0),
+                "aws_attributes_ebs_volume_type": safe_getattr(clusterObj, "aws_attributes.ebs_volume_type.value", "None"),
+                "aws_attributes_first_on_demand": safe_getattr(clusterObj, "aws_attributes.first_on_demand"),
+                "aws_attributes_spot_bid_price_percent": safe_getattr(clusterObj, "aws_attributes.spot_bid_price_percent"),
+                "aws_attributes_instance_profile_arn": safe_getattr(clusterObj, "aws_attributes.instance_profile_arn"),        
+                "aws_attributes_zone_id": safe_getattr(clusterObj, "aws_attributes.zone_id"),                        
+                "driver_node": safe_getattr(clusterObj, "driver_node_type_id", safe_getattr(clusterObj, "node_type_id")),
+                "worker_node": safe_getattr(clusterObj, "node_type_id"),
+                "num_workers": safe_getattr(clusterObj, "num_workers", 0),
+                "autoscale_min": safe_getattr(clusterObj, "autoscale.min_workers", 0),
+                "autoscale_max": safe_getattr(clusterObj, "autoscale.max_workers", 0),
+                "spark_version": safe_getattr(clusterObj, "spark_version"),
+                "policy_id": safe_getattr(clusterObj, "policy_id"),
+                "autotermination_minutes": str(safe_getattr(clusterObj, "autotermination_minutes")), 
+                "runtime_engine": safe_getattr(clusterObj, "runtime_engine.value", "None"),
+                "spark_conf": str(safe_getattr(clusterObj, "spark_conf", "None")),
+                "custom_tags": str(safe_getattr(clusterObj, "custom_tags", "None"))   
+        }
+        return row
+    except Exception as e: print(e)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Get Clusters for APC Lookup
 # MAGIC Return information about all pinned clusters, active clusters, up to 200 of the most recently terminated all-purpose clusters in the past 30 days, and up to 30 of the most recently terminated job clusters in the past 30 days.
 # MAGIC
@@ -71,39 +116,39 @@ def safe_getattr(obj, attr, default=None):
 
 clustersGen = w.clusters.list()
 clusters = []
-for c in clustersGen:
+for clusterObj in clustersGen:
     row = {
-        "cluster_id": safe_getattr(c, "cluster_id"),
-        "name": safe_getattr(c, "cluster_name"),
-        "creator_user_name": safe_getattr(c, "creator_user_name"),
-        "aws_attributes_availability": safe_getattr(c, "aws_attributes.availability.value", "None"),
-        "enable_elastic_disk": str(safe_getattr(c, "enable_elastic_disk")),
-        "enable_local_disk_encryption": safe_getattr(c, "enable_local_disk_encryption"),
-        "workload_type_jobs": safe_getattr(c, "workload_type.clients.jobs", "None"),
-        "workload_type_notebooks": safe_getattr(c, "workload_type.clients.notebooks", "None"),
-        "aws_attributes_ebs_volume_count": safe_getattr(c, "aws_attributes.ebs_volume_count", 0),
-        "aws_attributes_ebs_volume_iops": safe_getattr(c, "aws_attributes.ebs_volume_iops", 0),
-        "aws_attributes_ebs_volume_size": safe_getattr(c, "aws_attributes.ebs_volume_size", 0),
-        "aws_attributes_ebs_volume_throughput": safe_getattr(c, "aws_attributes.ebs_volume_throughput", 0),
-        "aws_attributes_ebs_volume_type": safe_getattr(c, "aws_attributes.ebs_volume_type.value", "None"),
-        "aws_attributes_first_on_demand": safe_getattr(c, "aws_attributes.first_on_demand"),
-        "aws_attributes_spot_bid_price_percent": safe_getattr(c, "aws_attributes.spot_bid_price_percent", "None"),
-        "aws_attributes_instance_profile_arn": safe_getattr(c, "aws_attributes.instance_profile_arn", "None"),
-        "aws_attributes_zone_id": safe_getattr(c, "aws_attributes.zone_id", "None"),
-        "cluster_memory_mb": safe_getattr(c, "cluster_memory_mb", "None"),
-        "cluster_cores": safe_getattr(c, "cluster_cores"),
-        "cluster_source": safe_getattr(c, "cluster_source.value"),
-        "driver_node": safe_getattr(c, "driver_node_type_id"),
-        "worker_node": safe_getattr(c, "node_type_id"),
-        "num_workers": safe_getattr(c, "num_workers", 0),
-        "autoscale_min": safe_getattr(c, "autoscale.min_workers", 0),
-        "autoscale_max": safe_getattr(c, "autoscale.max_workers", 0),
-        "spark_version": safe_getattr(c, "spark_version"),
-        "policy_id": safe_getattr(c, "policy_id"),
-        "custom_tags": safe_getattr(c, "custom_tags", "None"),
-        "autotermination_minutes": safe_getattr(c, "autotermination_minutes"),
-        "spark_conf": safe_getattr(c, "spark_conf", "None"),
-        "runtime_engine": safe_getattr(c, "runtime_engine.value", "None")
+        "cluster_id": safe_getattr(clusterObj, "cluster_id"),
+        "name": safe_getattr(clusterObj, "cluster_name"),
+        "creator_user_name": safe_getattr(clusterObj, "creator_user_name"),
+        "aws_attributes_availability": safe_getattr(clusterObj, "aws_attributes.availability.value", "None"),
+        "enable_elastic_disk": str(safe_getattr(clusterObj, "enable_elastic_disk")),
+        "enable_local_disk_encryption": safe_getattr(clusterObj, "enable_local_disk_encryption"),
+        "workload_type_jobs": safe_getattr(clusterObj, "workload_type.clients.jobs", "None"),
+        "workload_type_notebooks": safe_getattr(clusterObj, "workload_type.clients.notebooks", "None"),
+        "aws_attributes_ebs_volume_count": safe_getattr(clusterObj, "aws_attributes.ebs_volume_count", 0),
+        "aws_attributes_ebs_volume_iops": safe_getattr(clusterObj, "aws_attributes.ebs_volume_iops", 0),
+        "aws_attributes_ebs_volume_size": safe_getattr(clusterObj, "aws_attributes.ebs_volume_size", 0),
+        "aws_attributes_ebs_volume_throughput": safe_getattr(clusterObj, "aws_attributes.ebs_volume_throughput", 0),
+        "aws_attributes_ebs_volume_type": safe_getattr(clusterObj, "aws_attributes.ebs_volume_type.value", "None"),
+        "aws_attributes_first_on_demand": safe_getattr(clusterObj, "aws_attributes.first_on_demand"),
+        "aws_attributes_spot_bid_price_percent": safe_getattr(clusterObj, "aws_attributes.spot_bid_price_percent", "None"),
+        "aws_attributes_instance_profile_arn": safe_getattr(clusterObj, "aws_attributes.instance_profile_arn", "None"),
+        "aws_attributes_zone_id": safe_getattr(clusterObj, "aws_attributes.zone_id", "None"),
+        "cluster_memory_mb": safe_getattr(clusterObj, "cluster_memory_mb", "None"),
+        "cluster_cores": safe_getattr(clusterObj, "cluster_cores"),
+        "cluster_source": safe_getattr(clusterObj, "cluster_source.value"),
+        "driver_node": safe_getattr(clusterObj, "driver_node_type_id"),
+        "worker_node": safe_getattr(clusterObj, "node_type_id"),
+        "num_workers": safe_getattr(clusterObj, "num_workers", 0),
+        "autoscale_min": safe_getattr(clusterObj, "autoscale.min_workers", 0),
+        "autoscale_max": safe_getattr(clusterObj, "autoscale.max_workers", 0),
+        "spark_version": safe_getattr(clusterObj, "spark_version"),
+        "policy_id": safe_getattr(clusterObj, "policy_id"),
+        "custom_tags": safe_getattr(clusterObj, "custom_tags", "None"),
+        "autotermination_minutes": safe_getattr(clusterObj, "autotermination_minutes"),
+        "spark_conf": safe_getattr(clusterObj, "spark_conf", "None"),
+        "runtime_engine": safe_getattr(clusterObj, "runtime_engine.value", "None")
     }
     clusters.append(row)
 
@@ -160,51 +205,6 @@ sparkClustersDF.createOrReplaceTempView("cluster_info")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Get Single Cluster By ID
-# MAGIC This is needed for any cluster not returned by the list calls
-
-# COMMAND ----------
-
-def get_cluster(job_id, run_id, task_key, cluster_id, compute_definition):
-    try:
-        o = w.clusters.get(cluster_id)
-        row = {
-                "job_id": job_id,
-                "run_id": run_id,
-                "task_key": task_key,                        
-                "cluster_identifier": cluster_id,
-                "compute_definition": compute_definition,
-                "aws_attributes_availability": safe_getattr(o, "aws_attributes.availability.value", "None"),
-                "enable_elastic_disk": str(safe_getattr(o, "enable_elastic_disk")),
-                "enable_local_disk_encryption": safe_getattr(o, "enable_local_disk_encryption"),
-                "workload_type_jobs": safe_getattr(o, "workload_type.clients.jobs", "None"),
-                "aws_attributes_ebs_volume_count": safe_getattr(o, "aws_attributes.ebs_volume_count", 0),
-                "aws_attributes_ebs_volume_iops": safe_getattr(o, "aws_attributes.ebs_volume_iops", 0),
-                "aws_attributes_ebs_volume_size": safe_getattr(o, "aws_attributes.ebs_volume_size", 0),
-                "aws_attributes_ebs_volume_throughput": safe_getattr(o, "aws_attributes.ebs_volume_throughput", 0),
-                "aws_attributes_ebs_volume_type": safe_getattr(o, "aws_attributes.ebs_volume_type.value", "None"),
-                "aws_attributes_first_on_demand": safe_getattr(o, "aws_attributes.first_on_demand"),
-                "aws_attributes_spot_bid_price_percent": safe_getattr(o, "aws_attributes.spot_bid_price_percent"),
-                "aws_attributes_instance_profile_arn": safe_getattr(o, "aws_attributes.instance_profile_arn"),        
-                "aws_attributes_zone_id": safe_getattr(o, "aws_attributes.zone_id"),                        
-                "driver_node": safe_getattr(o, "driver_node_type_id", safe_getattr(o, "node_type_id")),
-                "worker_node": safe_getattr(o, "node_type_id"),
-                "num_workers": safe_getattr(o, "num_workers", 0),
-                "autoscale_min": safe_getattr(o, "autoscale.min_workers", 0),
-                "autoscale_max": safe_getattr(o, "autoscale.max_workers", 0),
-                "spark_version": safe_getattr(o, "spark_version"),
-                "policy_id": safe_getattr(o, "policy_id"),
-                "autotermination_minutes": str(safe_getattr(o, "autotermination_minutes")), 
-                "runtime_engine": safe_getattr(o, "runtime_engine.value", "None"),
-                "spark_conf": str(safe_getattr(o, "spark_conf", "None")),
-                "custom_tags": str(safe_getattr(o, "custom_tags", "None"))   
-        }
-        return row
-    except Exception as e: print(e)
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ## Get Job Info
 # MAGIC  - Creator
 # MAGIC  - Name
@@ -217,20 +217,20 @@ def get_cluster(job_id, run_id, task_key, cluster_id, compute_definition):
 jobsGen = w.jobs.list(expand_tasks=True)
 jobs = []
 count = 1
-for obj in jobsGen:
+for jobObj in jobsGen:
     row = {
-        "job_id": safe_getattr(obj, "job_id"),
-        "created_time": safe_getattr(obj, "created_time"),
-        "creator_user_name": safe_getattr(obj, "creator_user_name", "None"),
-        "name": safe_getattr(obj, "settings.name"),
-        "parameters": safe_getattr(obj, "settings.parameters"),
-        "schedule_paused_status": safe_getattr(obj, "settings.schedule.pause_status.value", "None"),
-        "schedule_quartz_cron_expression": safe_getattr(obj, "settings.schedule.quartz_cron_expression", "None"),
-        "schedule_timezone_id": safe_getattr(obj, "settings.schedule.timezone_id", "None"),
+        "job_id": safe_getattr(jobObj, "job_id"),
+        "created_time": safe_getattr(jobObj, "created_time"),
+        "creator_user_name": safe_getattr(jobObj, "creator_user_name", "None"),
+        "name": safe_getattr(jobObj, "settings.name"),
+        "parameters": safe_getattr(jobObj, "settings.parameters"),
+        "schedule_paused_status": safe_getattr(jobObj, "settings.schedule.pause_status.value", "None"),
+        "schedule_quartz_cron_expression": safe_getattr(jobObj, "settings.schedule.quartz_cron_expression", "None"),
+        "schedule_timezone_id": safe_getattr(jobObj, "settings.schedule.timezone_id", "None"),
         # Uncomment and adjust the following line if needed
-        # "webhook_notifications.on_success": safe_getattr(obj, "settings.webhook_notifications.on_success", "None"),
-        "task_count": 0 if obj.settings.tasks == None else len(obj.settings.tasks),
-        "job_clusters": 0 if obj.settings.job_clusters == None else len(obj.settings.job_clusters),
+        # "webhook_notifications.on_success": safe_getattr(jobObj, "settings.webhook_notifications.on_success", "None"),
+        "task_count": 0 if jobObj.settings.tasks == None else len(jobObj.settings.tasks),
+        "job_clusters": 0 if jobObj.settings.job_clusters == None else len(jobObj.settings.job_clusters),
     }
     jobs.append(row)
 
@@ -297,59 +297,59 @@ runsGen = w.jobs.list_runs(start_time_from=start_date, expand_tasks=True, comple
 run_clusters = []
 runs = []
 no_data = []
-for obj in runsGen:
+for runObj in runsGen:
 
-    for o in obj.tasks:
+    for task in runObj.tasks:
 
         run_info = {
-            "run_id": safe_getattr(obj, "run_id"),
-            "job_id": safe_getattr(obj, "job_id"),
-            "task_key": safe_getattr(o, "task_key"),
-            "run_name": safe_getattr(obj, "run_name"),
-            "notebook_task_base_params" : safe_getattr(o, "notebook_task.base_parameters.values", "N/A"),
-            "notebook_task_path" : safe_getattr(o, "notebook_task.notebook_path", "N/A"),
-            "notebook_task_source" : safe_getattr(o, "notebook_task.source", "N/A"),
-            "spark_python_task_params" : safe_getattr(o, "spark_python_task.parameters", "N/A"),
-            "spark_python_task_python_file" : safe_getattr(o, "spark_python_task.python_file", "N/A"),
-            "spark_python_task_source" : safe_getattr(o, "spark_python_task.source", "N/A"),
-            "spark_jar_task_parameters" : safe_getattr(o, "spark_jar_task.parameters", "N/A"),
-            "spark_jar_task_jar_uri" : safe_getattr(o, "spark_jar_task.jar_uri", "N/A"),
-            "spark_jar_task_main_class_name" : safe_getattr(o, "spark_jar_task.main_class_name", "N/A"),
-            "spark_submit_task_parameters" : safe_getattr(o, "spark_submit_task.parameters", "N/A"),
-            "dbt_task_as_dict" : safe_getattr(o, "dbt_task.as_dict", "N/A"),
-            "git_source_git_url" : safe_getattr(o, "git_source.git_url", "N/A"),
-            "git_source_job_source" : safe_getattr(o, "git_source.job_source", "N/A"),
-            "sql_task_parameters" : safe_getattr(o, "sql_task.parameters", "N/A"),
-            "sql_task_query" : safe_getattr(o, "sql_task.query", "N/A"),
-            "sql_task_warehouse_id" : safe_getattr(o, "sql_task.warehouse_id", "N/A"),
-            "run_job_task_job_parameters" : safe_getattr(o, "run_job_task.job_parameters", "N/A"),
-            "run_job_task_job_id" : safe_getattr(o, "run_job_task.job_id", "N/A"),
-            "task_duration": safe_getattr(o, "execution_duration"),
-            "task_state": safe_getattr(o, "state.result_state.value"),
-            "task_starttime": safe_getattr(o, "start_time"),
-            "task_endtime": safe_getattr(o, "end_time"),
-            "task_setup_duration": safe_getattr(o, "setup_duration"),
-            "task_cleanup_duration": safe_getattr(o, "cleanup_duration"),
-            "task_execution_duration": safe_getattr(o, "execution_duration"),
-            "run_starttime": safe_getattr(obj, "start_time"),
-            "run_endtime": safe_getattr(obj, "end_time"),
-            "run_type": safe_getattr(obj, "run_type.value", "Unknown"),
-            "run_execution_duration": safe_getattr(obj, "execution_duration"),
-            "run_life_cycle_state": safe_getattr(obj, "state.life_cycle_state.value", "UNKNOWN"),
-            "run_result_state": safe_getattr(obj, "state.result_state.value", "UNKNOWN")
+            "run_id": safe_getattr(runObj, "run_id"),
+            "job_id": safe_getattr(runObj, "job_id"),
+            "task_key": safe_getattr(runObj, "task_key"),
+            "run_name": safe_getattr(runObj, "run_name"),
+            "notebook_task_base_params" : safe_getattr(task, "notebook_task.base_parameters.values", "N/A"),
+            "notebook_task_path" : safe_getattr(task, "notebook_task.notebook_path", "N/A"),
+            "notebook_task_source" : safe_getattr(task, "notebook_task.source", "N/A"),
+            "spark_python_task_params" : safe_getattr(task, "spark_python_task.parameters", "N/A"),
+            "spark_python_task_python_file" : safe_getattr(task, "spark_python_task.python_file", "N/A"),
+            "spark_python_task_source" : safe_getattr(task, "spark_python_task.source", "N/A"),
+            "spark_jar_task_parameters" : safe_getattr(task, "spark_jar_task.parameters", "N/A"),
+            "spark_jar_task_jar_uri" : safe_getattr(task, "spark_jar_task.jar_uri", "N/A"),
+            "spark_jar_task_main_class_name" : safe_getattr(task, "spark_jar_task.main_class_name", "N/A"),
+            "spark_submit_task_parameters" : safe_getattr(task, "spark_submit_task.parameters", "N/A"),
+            "dbt_task_as_dict" : safe_getattr(task, "dbt_task.as_dict", "N/A"),
+            "git_source_git_url" : safe_getattr(task, "git_source.git_url", "N/A"),
+            "git_source_job_source" : safe_getattr(task, "git_source.job_source", "N/A"),
+            "sql_task_parameters" : safe_getattr(task, "sql_task.parameters", "N/A"),
+            "sql_task_query" : safe_getattr(task, "sql_task.query", "N/A"),
+            "sql_task_warehouse_id" : safe_getattr(task, "sql_task.warehouse_id", "N/A"),
+            "run_job_task_job_parameters" : safe_getattr(task, "run_job_task.job_parameters", "N/A"),
+            "run_job_task_job_id" : safe_getattr(task, "run_job_task.job_id", "N/A"),
+            "task_duration": safe_getattr(task, "execution_duration"),
+            "task_state": safe_getattr(task, "state.result_state.value"),
+            "task_starttime": safe_getattr(task, "start_time"),
+            "task_endtime": safe_getattr(task, "end_time"),
+            "task_setup_duration": safe_getattr(task, "setup_duration"),
+            "task_cleanup_duration": safe_getattr(task, "cleanup_duration"),
+            "task_execution_duration": safe_getattr(task, "execution_duration"),
+            "run_starttime": safe_getattr(runObj, "start_time"),
+            "run_endtime": safe_getattr(runObj, "end_time"),
+            "run_type": safe_getattr(runObj, "run_type.value", "Unknown"),
+            "run_execution_duration": safe_getattr(runObj, "execution_duration"),
+            "run_life_cycle_state": safe_getattr(runObj, "state.life_cycle_state.value", "UNKNOWN"),
+            "run_result_state": safe_getattr(runObj, "state.result_state.value", "UNKNOWN")
         }
         runs.append(run_info)
         
         
         # APC
-        if o.existing_cluster_id is not None:
-            existing_cluster_row = sparkClustersDF.where(col("cluster_id") == o.existing_cluster_id).first()
+        if task.existing_cluster_id is not None:
+            existing_cluster_row = sparkClustersDF.where(col("cluster_id") == task.existing_cluster_id).first()
             if existing_cluster_row is not None:
                 row = {
-                    "job_id": safe_getattr(obj, "job_id"),
-                    "run_id": safe_getattr(obj, "run_id"),
-                    "task_key": safe_getattr(o, "task_key"), 
-                    "cluster_identifier": safe_getattr(o, "existing_cluster_id"),
+                    "job_id": safe_getattr(runObj, "job_id"),
+                    "run_id": safe_getattr(runObj, "run_id"),
+                    "task_key": safe_getattr(task, "task_key"), 
+                    "cluster_identifier": safe_getattr(task, "existing_cluster_id"),
                     "compute_definition": 'All Purpose Compute',
                     "aws_attributes_availability": existing_cluster_row.asDict()['aws_attributes_availability'],
                     "enable_elastic_disk": existing_cluster_row.asDict()['enable_elastic_disk'],
@@ -378,89 +378,89 @@ for obj in runsGen:
                 }
                 run_clusters.append(row)
             else: # APC not in Cluster lookup
-                single_cluster=get_cluster(safe_getattr(obj, "job_id"),safe_getattr(obj, "run_id"),safe_getattr(o, "task_key"),safe_getattr(o, "existing_cluster_id"),'All Purpose Compute')
+                single_cluster=get_cluster(safe_getattr(runObj, "job_id"),safe_getattr(runObj, "run_id"),safe_getattr(task, "task_key"),safe_getattr(task, "existing_cluster_id"),'All Purpose Compute')
                 if single_cluster is not None:
                     run_clusters.append(single_cluster)
                 else: # Unable to log
-                    no_data.append({"job_id": obj.job_id, "cluster_id": o.existing_cluster_id, "Status": "APC not in cluster list and can't be retrieved"}) 
+                    no_data.append({"job_id": runObj.job_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": task.existing_cluster_id, "Status": "APC not in cluster list and can't be retrieved"}) 
         else:  # Jobs Compute
-            if hasattr(o,"job_cluster_key") == False: #defined in Task
-                if o.new_cluster is not None: 
+            if hasattr(task, "job_cluster_key") == False: #defined in Task
+                if task.new_cluster is not None: 
                     row = {
-                        "job_id": safe_getattr(obj, "job_id"),
-                        "run_id": safe_getattr(obj, "run_id"),
-                        "task_key": safe_getattr(o, "task_key"),                        
+                        "job_id": safe_getattr(runObj, "job_id"),
+                        "run_id": safe_getattr(runObj, "run_id"),
+                        "task_key": safe_getattr(task, "task_key"),                        
                         "cluster_identifier": "Task Defined",
                         "compute_definition": 'Jobs Compute',
-                        "aws_attributes_availability": safe_getattr(o, "new_cluster.aws_attributes.availability.value", "None"),
-                        "enable_elastic_disk": str(safe_getattr(o, "new_cluster.enable_elastic_disk")),
-                        "enable_local_disk_encryption": safe_getattr(o, "new_cluster.enable_local_disk_encryption"),
-                        "workload_type_jobs": safe_getattr(o, "new_cluster.workload_type.clients.jobs", "None"),
-                        "aws_attributes_ebs_volume_count": safe_getattr(o, "new_cluster.aws_attributes.ebs_volume_count", 0),
-                        "aws_attributes_ebs_volume_iops": safe_getattr(o, "new_cluster.aws_attributes.ebs_volume_iops", 0),
-                        "aws_attributes_ebs_volume_size": safe_getattr(o, "new_cluster.aws_attributes.ebs_volume_size", 0),
-                        "aws_attributes_ebs_volume_throughput": safe_getattr(o, "new_cluster.aws_attributes.ebs_volume_throughput", 0),
-                        "aws_attributes_ebs_volume_type": safe_getattr(o, "new_cluster.aws_attributes.ebs_volume_type.value", "None"),
-                        "aws_attributes_first_on_demand": safe_getattr(o, "new_cluster.aws_attributes.first_on_demand"),
-                        "aws_attributes_spot_bid_price_percent": safe_getattr(o, "new_cluster.aws_attributes.spot_bid_price_percent"),
-                        "aws_attributes_instance_profile_arn": safe_getattr(o, "new_cluster.aws_attributes.instance_profile_arn"),        
-                        "aws_attributes_zone_id": safe_getattr(o, "new_cluster.aws_attributes.zone_id"),                        
-                        "driver_node": safe_getattr(o, "new_cluster.driver_node_type_id", safe_getattr(o, "new_cluster.node_type_id")),
-                        "worker_node": safe_getattr(o, "new_cluster.node_type_id"),
-                        "num_workers": safe_getattr(o, "new_cluster.num_workers", 0),
-                        "autoscale_min": safe_getattr(o, "new_cluster.autoscale.min_workers", 0),
-                        "autoscale_max": safe_getattr(o, "new_cluster.autoscale.max_workers", 0),
-                        "spark_version": safe_getattr(o, "new_cluster.spark_version"),
-                        "policy_id": safe_getattr(o, "new_cluster.policy_id"),
-                        "autotermination_minutes": str(safe_getattr(o, "new_cluster.autotermination_minutes")), 
-                        "runtime_engine": safe_getattr(o, "new_cluster.runtime_engine.value", "None"),
-                        "spark_conf": str(safe_getattr(o, "new_cluster.spark_conf", "None")),
-                        "custom_tags": str(safe_getattr(o, "new_cluster.custom_tags", "None"))                        
+                        "aws_attributes_availability": safe_getattr(task, "new_cluster.aws_attributes.availability.value", "None"),
+                        "enable_elastic_disk": str(safe_getattr(task, "new_cluster.enable_elastic_disk")),
+                        "enable_local_disk_encryption": safe_getattr(task, "new_cluster.enable_local_disk_encryption"),
+                        "workload_type_jobs": safe_getattr(task, "new_cluster.workload_type.clients.jobs", "None"),
+                        "aws_attributes_ebs_volume_count": safe_getattr(task, "new_cluster.aws_attributes.ebs_volume_count", 0),
+                        "aws_attributes_ebs_volume_iops": safe_getattr(task, "new_cluster.aws_attributes.ebs_volume_iops", 0),
+                        "aws_attributes_ebs_volume_size": safe_getattr(task, "new_cluster.aws_attributes.ebs_volume_size", 0),
+                        "aws_attributes_ebs_volume_throughput": safe_getattr(task, "new_cluster.aws_attributes.ebs_volume_throughput", 0),
+                        "aws_attributes_ebs_volume_type": safe_getattr(task, "new_cluster.aws_attributes.ebs_volume_type.value", "None"),
+                        "aws_attributes_first_on_demand": safe_getattr(task, "new_cluster.aws_attributes.first_on_demand"),
+                        "aws_attributes_spot_bid_price_percent": safe_getattr(task, "new_cluster.aws_attributes.spot_bid_price_percent"),
+                        "aws_attributes_instance_profile_arn": safe_getattr(task, "new_cluster.aws_attributes.instance_profile_arn"),        
+                        "aws_attributes_zone_id": safe_getattr(task, "new_cluster.aws_attributes.zone_id"),                        
+                        "driver_node": safe_getattr(task, "new_cluster.driver_node_type_id", safe_getattr(task, "new_cluster.node_type_id")),
+                        "worker_node": safe_getattr(task, "new_cluster.node_type_id"),
+                        "num_workers": safe_getattr(task, "new_cluster.num_workers", 0),
+                        "autoscale_min": safe_getattr(task, "new_cluster.autoscale.min_workers", 0),
+                        "autoscale_max": safe_getattr(task, "new_cluster.autoscale.max_workers", 0),
+                        "spark_version": safe_getattr(task, "new_cluster.spark_version"),
+                        "policy_id": safe_getattr(task, "new_cluster.policy_id"),
+                        "autotermination_minutes": str(safe_getattr(task, "new_cluster.autotermination_minutes")), 
+                        "runtime_engine": safe_getattr(task, "new_cluster.runtime_engine.value", "None"),
+                        "spark_conf": str(safe_getattr(task, "new_cluster.spark_conf", "None")),
+                        "custom_tags": str(safe_getattr(task, "new_cluster.custom_tags", "None"))                        
                     }
                     run_clusters.append(row)
                 else: # get cluster from instance
-                    if o.cluster_instance is not None:
-                        single_cluster=get_cluster(safe_getattr(obj, "job_id"),safe_getattr(obj, "run_id"),safe_getattr(o, "task_key"),safe_getattr(o, "cluster_instance.cluster_id"),'Jobs Compute')                            
+                    if task.cluster_instance is not None:
+                        single_cluster=get_cluster(safe_getattr(runObj, "job_id"),safe_getattr(runObj, "run_id"),safe_getattr(task, "task_key"),safe_getattr(task, "cluster_instance.cluster_id"),'Jobs Compute')                            
                         if single_cluster is not None:
                             run_clusters.append(single_cluster)
                         else: 
-                            no_data.append({"job_id": obj.run_id, "cluster_id": o.cluster_instance.cluster_id, "Status": "Unable to lookup job cluster"})
+                            no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": task.cluster_instance.cluster_id, "Status": "Unable to lookup job cluster"})
                     else:
-                        no_data.append({"job_id": obj.run_id, "cluster_id": "unknown", "Status": "Not defined and no cluster instance"})
+                        no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": runObj.task_key, "cluster_id": "unknown", "Status": "Not defined and no cluster instance"})
     
             else: # shared Jobs Compute
-                for c in obj.job_clusters:
-                    if (c.job_cluster_key == o.job_cluster_key):
+                for cluster in runObj.job_clusters:
+                    if (cluster.job_cluster_key == task.job_cluster_key):
                         row = {
-                        "job_id": safe_getattr(obj, "job_id"),
-                        "run_id": safe_getattr(obj, "run_id"),
-                        "task_key": safe_getattr(o, "task_key"),
-                        "cluster_identifier": safe_getattr(o, "job_cluster_key"),
+                        "job_id": safe_getattr(runObj, "job_id"),
+                        "run_id": safe_getattr(runObj, "run_id"),
+                        "task_key": safe_getattr(task, "task_key"),
+                        "cluster_identifier": safe_getattr(task, "job_cluster_key"),
                         "compute_definition": 'Jobs Compute',
-                        "aws_attributes_availability": safe_getattr(c, "new_cluster.aws_attributes.availability.value", "None"),
-                        "enable_elastic_disk": str(safe_getattr(c, "new_cluster.enable_elastic_disk")),
-                        "enable_local_disk_encryption": safe_getattr(c, "new_cluster.enable_local_disk_encryption"),
-                        "workload_type_jobs": safe_getattr(c, "new_cluster.workload_type.clients.jobs", "None"),
-                        "aws_attributes_ebs_volume_count": safe_getattr(c, "new_cluster.aws_attributes.ebs_volume_count", 0),
-                        "aws_attributes_ebs_volume_iops": safe_getattr(c, "new_cluster.aws_attributes.ebs_volume_iops", 0),
-                        "aws_attributes_ebs_volume_size": safe_getattr(c, "new_cluster.aws_attributes.ebs_volume_size", 0),
-                        "aws_attributes_ebs_volume_throughput": safe_getattr(c, "new_cluster.aws_attributes.ebs_volume_throughput", 0),
-                        "aws_attributes_ebs_volume_type": safe_getattr(c, "new_cluster.aws_attributes.ebs_volume_type.value", "None"),
-                        "aws_attributes_first_on_demand": safe_getattr(c, "new_cluster.aws_attributes.first_on_demand"),
-                        "aws_attributes_spot_bid_price_percent": safe_getattr(c, "new_cluster.aws_attributes.spot_bid_price_percent"),
-                        "aws_attributes_instance_profile_arn": safe_getattr(c, "new_cluster.aws_attributes.instance_profile_arn"),        
-                        "aws_attributes_zone_id": safe_getattr(c, "new_cluster.aws_attributes.zone_id"),                              
-                        "driver_node": safe_getattr(c, "new_cluster.driver_node_type_id", safe_getattr(c, "new_cluster.node_type_id")),
-                        "worker_node": safe_getattr(c, "new_cluster.node_type_id"),
-                        "num_workers": safe_getattr(c, "new_cluster.num_workers", 0),
-                        "autoscale_min": safe_getattr(c, "new_cluster.autoscale.min_workers", 0),
-                        "autoscale_max": safe_getattr(c, "new_cluster.autoscale.max_workers", 0),
-                        "spark_version": safe_getattr(c, "new_cluster.spark_version"),
-                        "policy_id": safe_getattr(c, "new_cluster.policy_id"),
-                        "autotermination_minutes": str(safe_getattr(c, "new_cluster.autotermination_minutes")), 
-                        "runtime_engine": safe_getattr(c, "new_cluster.runtime_engine.value", "None"),
-                        "spark_conf": str(safe_getattr(c, "new_cluster.spark_conf", "None")),
-                        "custom_tags": str(safe_getattr(c, "new_cluster.custom_tags", "None"))
+                        "aws_attributes_availability": safe_getattr(cluster, "new_cluster.aws_attributes.availability.value", "None"),
+                        "enable_elastic_disk": str(safe_getattr(cluster, "new_cluster.enable_elastic_disk")),
+                        "enable_local_disk_encryption": safe_getattr(cluster, "new_cluster.enable_local_disk_encryption"),
+                        "workload_type_jobs": safe_getattr(cluster, "new_cluster.workload_type.clients.jobs", "None"),
+                        "aws_attributes_ebs_volume_count": safe_getattr(cluster, "new_cluster.aws_attributes.ebs_volume_count", 0),
+                        "aws_attributes_ebs_volume_iops": safe_getattr(cluster, "new_cluster.aws_attributes.ebs_volume_iops", 0),
+                        "aws_attributes_ebs_volume_size": safe_getattr(cluster, "new_cluster.aws_attributes.ebs_volume_size", 0),
+                        "aws_attributes_ebs_volume_throughput": safe_getattr(cluster, "new_cluster.aws_attributes.ebs_volume_throughput", 0),
+                        "aws_attributes_ebs_volume_type": safe_getattr(cluster, "new_cluster.aws_attributes.ebs_volume_type.value", "None"),
+                        "aws_attributes_first_on_demand": safe_getattr(cluster, "new_cluster.aws_attributes.first_on_demand"),
+                        "aws_attributes_spot_bid_price_percent": safe_getattr(cluster, "new_cluster.aws_attributes.spot_bid_price_percent"),
+                        "aws_attributes_instance_profile_arn": safe_getattr(cluster, "new_cluster.aws_attributes.instance_profile_arn"),        
+                        "aws_attributes_zone_id": safe_getattr(cluster, "new_cluster.aws_attributes.zone_id"),                              
+                        "driver_node": safe_getattr(cluster, "new_cluster.driver_node_type_id", safe_getattr(cluster, "new_cluster.node_type_id")),
+                        "worker_node": safe_getattr(cluster, "new_cluster.node_type_id"),
+                        "num_workers": safe_getattr(cluster, "new_cluster.num_workers", 0),
+                        "autoscale_min": safe_getattr(cluster, "new_cluster.autoscale.min_workers", 0),
+                        "autoscale_max": safe_getattr(cluster, "new_cluster.autoscale.max_workers", 0),
+                        "spark_version": safe_getattr(cluster, "new_cluster.spark_version"),
+                        "policy_id": safe_getattr(cluster, "new_cluster.policy_id"),
+                        "autotermination_minutes": str(safe_getattr(cluster, "new_cluster.autotermination_minutes")), 
+                        "runtime_engine": safe_getattr(cluster, "new_cluster.runtime_engine.value", "None"),
+                        "spark_conf": str(safe_getattr(cluster, "new_cluster.spark_conf", "None")),
+                        "custom_tags": str(safe_getattr(cluster, "new_cluster.custom_tags", "None"))
                     }
 
                     run_clusters.append(row)        
@@ -548,6 +548,8 @@ sparkRunClustersDF.createOrReplaceTempView("job_run_cluster_info")
 
 error_schema = StructType([
     StructField("job_id", StringType()),
+    StructField("run_id", StringType()),
+    StructField("task_key", StringType()),        
     StructField("cluster_id", StringType()),
     StructField("status", StringType())
 ])
@@ -573,16 +575,19 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Run Tasks Missing Cluster Info
+# MAGIC ### Run Tasks Cluster Info
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC select 'all runs tasks', count(*) from gradient_usage_predictions.job_run_info
+# MAGIC select 'all runs tasks', count(distinct run_id, task_key) counts from gradient_usage_predictions.job_run_info
 # MAGIC union
-# MAGIC select 'tasks with cluster definition', count(*) from gradient_usage_predictions.job_run_cluster_info
+# MAGIC select 'tasks with cluster definition', count(distinct run_id, task_key) from gradient_usage_predictions.job_run_cluster_info
 # MAGIC union
-# MAGIC select 'clusters we couldnt look up', count(*) from gradient_usage_predictions.job_run_no_cluster_info;
+# MAGIC select 'tasks with no cluster definition', count(distinct run_id, task_key) from gradient_usage_predictions.job_run_no_cluster_info
+# MAGIC union
+# MAGIC select 'clusters we couldnt look up', count(distinct cluster_id) from gradient_usage_predictions.job_run_no_cluster_info;
+# MAGIC
 
 # COMMAND ----------
 
