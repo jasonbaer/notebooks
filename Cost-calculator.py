@@ -1,4 +1,17 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # Sync Gradient Core Hours Calculator
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Prompts
+# MAGIC   - host: Databricks Workspace, leave blank for current workspace
+# MAGIC   - host: Databricks Token, leave blank for current workspace
+# MAGIC   - days back: start range for run info, these days will be extrapoloated to estimate annual usage
+
+# COMMAND ----------
+
 dbutils.widgets.text("host","")
 dbutils.widgets.text("token","")
 dbutils.widgets.text("days back", "1")
@@ -646,7 +659,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC        dw.vcpus worker_vcps,
 # MAGIC        round((jri.run_endtime - jri.run_starttime) / 1000 / 60,2) duration_min,
 # MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.dbus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.dbus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end),2) dbus,
-# MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end), 2) sgus
+# MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end), 2) core_hrs
 # MAGIC   from gradient_usage_predictions.job_run_info jri
 # MAGIC   join gradient_usage_predictions.all_job_clusters ajc on jri.job_id = ajc.job_id and jri.task_key = ajc.task_key
 # MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dd on dd.instance_type = ajc.driver_node
@@ -700,7 +713,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC             when (dbt_task_as_dict <> 'N/A') then 'DBT Task' end task_type,
 # MAGIC             count(distinct job_run_info.run_id) distinct_run_ids,
 # MAGIC             count(distinct job_run_info.job_id) distinct_job_ids
-# MAGIC from job_run_info 
+# MAGIC from gradient_usage_predictions.job_run_info 
 # MAGIC join all_job_clusters using (job_id, task_key)
 # MAGIC group by 1,2
 
@@ -709,7 +722,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC %md
 # MAGIC ## Job Usage 
 # MAGIC - dbus (dbus * hours * nodes)
-# MAGIC - sgus (vcpu * hours * nodes)
+# MAGIC - core_hrs (vcpu * hours * nodes)
 # MAGIC
 # MAGIC **Probably issue with num_workers (why so many 0's)**
 
@@ -736,11 +749,11 @@ calc = f"""select '{str(start_date_truncated)} - {str(end_date_truncated)}',
             count(distinct run_name) jobs,
             count(distinct run_id) runs,
             round(sum(dbus),2) dbus,
-            round(sum(sgus),2) core_hrs,
+            round(sum(core_hrs),2) core_hrs,
             round(sum(dbus) * {yr_mult},2) est_dbus,
-            round(sum(sgus) * {yr_mult},2) est_core_hrs,
+            round(sum(core_hrs) * {yr_mult},2) est_core_hrs,
             round(sum(dbus) * {yr_mult} * .20, 2) est_dbu_cost,
-            round(sum(sgus) * {yr_mult} * .006,2) est_core_hr_cost
+            round(sum(core_hrs) * {yr_mult} * .006,2) est_core_hr_cost
          from gradient_usage_predictions.run_usage
          where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) >= '{str(start_date_truncated)}'
            and date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) <  '{str(end_date_truncated)}'"""
