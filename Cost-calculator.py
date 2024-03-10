@@ -715,21 +715,32 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) month,
-# MAGIC        count(distinct run_name) jobs,
-# MAGIC        count(distinct run_id) runs,
-# MAGIC        round(sum(dbus),2) dbus,
-# MAGIC        round(sum(sgus),2) core_hrs,
-# MAGIC        round(sum(dbus) * 365,2) est_dbus,
-# MAGIC        round(sum(sgus) * 365,2) est_core_hrs,
-# MAGIC        round(sum(dbus) * 365 * .20, 2) est_dbu_cost,
-# MAGIC        round(sum(sgus) * 365 * .006,2) est_core_hr_cost
-# MAGIC        --sum(dbus) * 365 * .20 * 2 * .25 25_tot,
-# MAGIC        --sum(dbus) * 365 * .20 * 2 * .25 / (sum(sgus) * 12 * .006) ratio
-# MAGIC from gradient_usage_predictions.run_usage
-# MAGIC where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) =  date_trunc('DAY',date_sub(CAST(current_timestamp() as DATE), 1))
-# MAGIC group by 1
+import math
+
+start_date = (datetime.datetime.now().replace(minute=0, hour=0, second=0, microsecond=0) - datetime.timedelta(int(dbutils.widgets.get("days back"))))
+start_date_truncated = datetime.date(start_date.year, start_date.month, start_date.day)
+print(start_date_truncated)
+
+end_date = (datetime.datetime.now().replace(minute=0, hour=0, second=0, microsecond=0))
+end_date_truncated = datetime.date(end_date.year, end_date.month, end_date.day)
+
+yr_mult = math.floor(365/int(dbutils.widgets.get("days back")))
+print(yr_mult)
+
+calc = f"""select '{str(start_date_truncated)} - {str(end_date_truncated)}',
+            count(distinct run_name) jobs,
+            count(distinct run_id) runs,
+            round(sum(dbus),2) dbus,
+            round(sum(sgus),2) core_hrs,
+            round(sum(dbus) * {yr_mult},2) est_dbus,
+            round(sum(sgus) * {yr_mult},2) est_core_hrs,
+            round(sum(dbus) * {yr_mult} * .20, 2) est_dbu_cost,
+            round(sum(sgus) * {yr_mult} * .006,2) est_core_hr_cost
+         from gradient_usage_predictions.run_usage
+         where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) >= '{str(start_date_truncated)}'
+           and date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) <  '{str(end_date_truncated)}'"""
+
+display(spark.sql(calc))         
 
 # COMMAND ----------
 
