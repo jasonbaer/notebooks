@@ -728,7 +728,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC        --sum(dbus) * 365 * .20 * 2 * .25 25_tot,
 # MAGIC        --sum(dbus) * 365 * .20 * 2 * .25 / (sum(sgus) * 12 * .006) ratio
 # MAGIC from gradient_usage_predictions.run_usage
-# MAGIC where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) = '2024-03-08T00:00:00.000+00:00'
+# MAGIC where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) =  date_trunc('DAY',date_sub(CAST(current_timestamp() as DATE), 1))
 # MAGIC group by 1
 
 # COMMAND ----------
