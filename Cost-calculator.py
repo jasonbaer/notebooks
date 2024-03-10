@@ -115,7 +115,9 @@ def get_cluster(job_id, run_id, task_key, cluster_id, compute_definition):
                 "custom_tags": str(safe_getattr(clusterObj, "custom_tags", "None"))   
         }
         return row
-    except Exception as e: print(e)
+    except:
+        pass
+    #except Exception as e: print(e)
 
 # COMMAND ----------
 
@@ -282,9 +284,9 @@ sparkJobsDF.createOrReplaceTempView("job_info")
 # MAGIC - State
 # MAGIC - Start, End Times
 # MAGIC
-# MAGIC ## Get Run Cluster Definitions
+# MAGIC ## Get Run Task Cluster Definitions
 # MAGIC
-# MAGIC This will include clusters for runs
+# MAGIC This will include clusters for tasks on job run
 # MAGIC
 # MAGIC  - Data is fetched for the number of trailing days specified in the "days back" prompt
 # MAGIC
@@ -292,7 +294,7 @@ sparkJobsDF.createOrReplaceTempView("job_info")
 # MAGIC     - sharable job cluster
 # MAGIC  - Clusters can be defined in the task
 # MAGIC     - existing cluster id aka APC
-# MAGIC         - if not in cluster list, need to go get it (to do)
+# MAGIC         - if not in cluster lookup, go get it
 # MAGIC     - sharable job_cluster, defined in run, linked in task
 # MAGIC     - sharable job_cluster, defined in run, not linked in task (missing)
 # MAGIC     - new cluster
@@ -723,8 +725,6 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC ## Job Usage 
 # MAGIC - dbus (dbus * hours * nodes)
 # MAGIC - core_hrs (vcpu * hours * nodes)
-# MAGIC
-# MAGIC **Probably issue with num_workers (why so many 0's)**
 
 # COMMAND ----------
 
