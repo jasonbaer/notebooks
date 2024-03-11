@@ -7,14 +7,23 @@
 # MAGIC %md
 # MAGIC ## Prompts
 # MAGIC   - host: Databricks Workspace, leave blank for current workspace
-# MAGIC   - host: Databricks Token, leave blank for current workspace
+# MAGIC   - token: Databricks Token, leave blank for current workspace
 # MAGIC   - days back: start range for run info, these days will be extrapoloated to estimate annual usage
+# MAGIC   - Jobs compute rate e.g. enterprise list for jobs compute is .20
+# MAGIC
+# MAGIC ## Dependencies
+# MAGIC   - Load DBU data from [github](https://github.com/syncpete/notebooks/blob/main/dbus_vcpus.csv) in to a table named gradient_usage_predictions.dbus_jobs_enterprise.
+# MAGIC   (https://github.com/syncpete/notebooks/blob/main/dbus_vcpus.csv)
+# MAGIC
+# MAGIC [Databricks instructions for creating a table from uploaded CSV](https://docs.databricks.com/en/ingestion/add-data/upload-data.html).
+# MAGIC (https://docs.databricks.com/en/ingestion/add-data/upload-data.html)
 
 # COMMAND ----------
 
 dbutils.widgets.text("host","")
 dbutils.widgets.text("token","")
 dbutils.widgets.text("days back", "1")
+dbutils.widgets.text("jobs compute rate", ".20")
 
 # COMMAND ----------
 
@@ -397,7 +406,7 @@ for runObj in runsGen:
                 if single_cluster is not None:
                     run_clusters.append(single_cluster)
                 else: # Unable to log
-                    no_data.append({"job_id": runObj.job_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.existing_cluster_id, "Status": "APC not in cluster list and can't be retrieved"}) 
+                    no_data.append({"job_id": runObj.job_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.existing_cluster_id, "status": "APC not in cluster list and can't be retrieved"}) 
         else:  # Jobs Compute
             if hasattr(task, "job_cluster_key") == False: #defined in Task
                 if task.new_cluster is not None: 
@@ -439,9 +448,9 @@ for runObj in runsGen:
                         if single_cluster is not None:
                             run_clusters.append(single_cluster)
                         else: 
-                            no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.cluster_instance.cluster_id, "Status": "Unable to lookup job cluster"})
+                            no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": task.cluster_instance.cluster_id, "status": "Unable to lookup job cluster"})
                     else:
-                        no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": "unknown", "Status": "Not defined and no cluster instance"})
+                        no_data.append({"job_id": runObj.run_id, "run_id": runObj.run_id, "task_key": task.task_key, "cluster_id": "unknown", "status": "Not defined and no cluster instance"})
     
             else: # shared Jobs Compute
                 for cluster in runObj.job_clusters:
@@ -612,6 +621,15 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC select * from gradient_usage_predictions.job_run_no_cluster_info 
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC create or replace view gradient_usage_predictions.all_job_clusters as
 # MAGIC select job_id,
 # MAGIC task_key,
@@ -739,6 +757,7 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 
 import math
 
+jobs_compute_rate = dbutils.widgets.get("jobs compute rate")
 start_date = (datetime.datetime.now().replace(minute=0, hour=0, second=0, microsecond=0) - datetime.timedelta(int(dbutils.widgets.get("days back"))))
 start_date_truncated = datetime.date(start_date.year, start_date.month, start_date.day)
 print(start_date_truncated)
@@ -756,7 +775,7 @@ calc = f"""select '{str(start_date_truncated)} - {str(end_date_truncated)}',
             round(sum(core_hrs),2) core_hrs,
             round(sum(dbus) * {yr_mult},2) est_annual_job_dbus,
             round(sum(core_hrs) * {yr_mult},2) est_annual_core_hrs,
-            round(sum(dbus) * {yr_mult} * .20, 2) est_annual_job_dbu_cost,
+            round(sum(dbus) * {yr_mult} * {str(jobs_compute_rate)}, 2) est_annual_job_dbu_cost,
             round(sum(core_hrs) * {yr_mult} * .006,2) est_annual_core_hr_cost
          from gradient_usage_predictions.run_usage
          where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) >= '{str(start_date_truncated)}'
