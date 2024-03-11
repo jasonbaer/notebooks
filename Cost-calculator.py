@@ -12,11 +12,11 @@
 # MAGIC   - Jobs compute rate e.g. enterprise list for jobs compute is .20
 # MAGIC
 # MAGIC ## Dependencies
-# MAGIC   - Load DBU data from [github](https://github.com/syncpete/notebooks/blob/main/dbus_vcpus.csv) in to a table named gradient_usage_predictions.dbus_jobs_enterprise.
+# MAGIC   - This notebook will load DBU data from [github](https://github.com/syncpete/notebooks/blob/main/dbus_vcpus.csv) in to a table named gradient_usage_predictions.dbus_jobs_enterprise.
 # MAGIC   (https://github.com/syncpete/notebooks/blob/main/dbus_vcpus.csv)
 # MAGIC
-# MAGIC [Databricks instructions for creating a table from uploaded CSV](https://docs.databricks.com/en/ingestion/add-data/upload-data.html).
-# MAGIC (https://docs.databricks.com/en/ingestion/add-data/upload-data.html)
+# MAGIC If you want to load manually [Databricks instructions for creating a table from uploaded CSV](https://docs.databricks.com/en/ingestion/add-data/upload-data.html).
+# MAGIC (https://docs.databricks.com/en/ingestion/add-data/upload-data.html)gradient_usage_predictions.dbus_jobs_enterprise
 
 # COMMAND ----------
 
@@ -32,6 +32,16 @@ dbutils.widgets.text("jobs compute rate", ".20")
 # COMMAND ----------
 
 dbutils.library.restartPython()
+
+# COMMAND ----------
+
+# MAGIC %sh 
+# MAGIC  
+# MAGIC rm -rf /dbfs/tmp/sync/gradient  # drop any old copies of data
+# MAGIC mkdir -p /dbfs/tmp/sync/gradient # ensure destination folder exists
+# MAGIC  
+# MAGIC # download data to destination folder
+# MAGIC wget -N https://raw.githubusercontent.com/syncpete/notebooks/main/dbus_vcpus.csv -P /dbfs/tmp/sync/gradient
 
 # COMMAND ----------
 
@@ -80,6 +90,37 @@ def safe_getattr(obj, attr, default=None):
 # Example usage
 #value = safe_getattr(obj, 'settings.schedule', "None")
 
+
+# COMMAND ----------
+
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType, LongType, FloatType
+
+csv_filename = "/tmp/sync/gradient/dbus_vcpus.csv"
+
+instance_schema = StructType([
+    StructField("instance_type", StringType()),
+    StructField("vcpus", LongType()),
+    StructField("memory", LongType()),
+    StructField("dbus", FloatType())
+])
+ 
+sparkInstanceTypesDF = spark.read.csv(csv_filename, sep=',',
+                         schema=instance_schema, header=True)
+
+sparkInstanceTypesDF.createOrReplaceTempView("dbus_jobs_enterprise")  
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE SCHEMA IF NOT EXISTS gradient_usage_predictions;
+# MAGIC USE gradient_usage_predictions;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC drop table if exists gradient_usage_predictions.dbus_jobs_enterprise;
+# MAGIC create table gradient_usage_predictions.dbus_jobs_enterprise as select * from dbus_jobs_enterprise;
 
 # COMMAND ----------
 
@@ -176,8 +217,6 @@ for clusterObj in clustersGen:
     }
     clusters.append(row)
 
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType, ArrayType, LongType
-
 schema = StructType([
     StructField("cluster_id", StringType()),
     StructField("name", StringType()),
@@ -220,8 +259,6 @@ sparkClustersDF.createOrReplaceTempView("cluster_info")
 
 # MAGIC %sql
 # MAGIC
-# MAGIC CREATE SCHEMA IF NOT EXISTS gradient_usage_predictions;
-# MAGIC USE gradient_usage_predictions;
 # MAGIC drop table if exists gradient_usage_predictions.cluster_info;
 # MAGIC create table gradient_usage_predictions.cluster_info as select * from cluster_info;
 # MAGIC
