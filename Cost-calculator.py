@@ -217,7 +217,7 @@ for clusterObj in clustersGen:
     }
     clusters.append(row)
 
-schema = StructType([
+clusterSchema = StructType([
     StructField("cluster_id", StringType()),
     StructField("name", StringType()),
     StructField("creator_user_name", StringType()),
@@ -235,23 +235,23 @@ schema = StructType([
 	StructField("aws_attributes_spot_bid_price_percent", StringType()),
 	StructField("aws_attributes_instance_profile_arn", StringType()),
 	StructField("aws_attributes_zone_id", StringType()),
-	StructField("cluster_memory_mb", LongType()),
-	StructField("cluster_cores", LongType()),
+	StructField("cluster_memory_mb", StringType()),
+	StructField("cluster_cores", StringType()),
 	StructField("cluster_source", StringType()),
 	StructField("driver_node", StringType()),
 	StructField("worker_node", StringType()),
-	StructField("num_workers", LongType()),
-	StructField("autoscale_min", LongType()),
-	StructField("autoscale_max", LongType()),
+	StructField("num_workers", StringType()),
+	StructField("autoscale_min", StringType()),
+	StructField("autoscale_max", StringType()),
 	StructField("spark_version", StringType()),
 	StructField("policy_id", StringType()),
 	StructField("custom_tags", StringType()),
-	StructField("autotermination_minutes", LongType()),
+	StructField("autotermination_minutes", StringType()),
 	StructField("spark_conf", StringType()),
 	StructField("runtime_engine", StringType()),
 ])
 
-sparkClustersDF = spark.createDataFrame(data=clusters)
+sparkClustersDF = spark.createDataFrame(data=clusters, schema=clusterSchema)
 sparkClustersDF.createOrReplaceTempView("cluster_info")
 
 
@@ -662,10 +662,6 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 # MAGIC %sql
 # MAGIC create or replace view gradient_usage_predictions.all_job_clusters as
 # MAGIC select job_id,
@@ -725,7 +721,8 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 # MAGIC   from gradient_usage_predictions.job_run_info jri
 # MAGIC   join gradient_usage_predictions.all_job_clusters ajc on jri.job_id = ajc.job_id and jri.task_key = ajc.task_key
 # MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dd on dd.instance_type = ajc.driver_node
-# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dw on dw.instance_type = ajc.worker_node;
+# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dw on dw.instance_type = ajc.worker_node
+# MAGIC ;
 # MAGIC  
 
 # COMMAND ----------
@@ -737,6 +734,14 @@ sparkNoClustersDF.createOrReplaceTempView("job_run_no_cluster_info")
 
 # MAGIC %md
 # MAGIC # Queries
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC
+# MAGIC select jri.run_result_state, count(*)
+# MAGIC from gradient_usage_predictions.job_run_info jri
+# MAGIC group by 1
 
 # COMMAND ----------
 
