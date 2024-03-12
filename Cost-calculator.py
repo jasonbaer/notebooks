@@ -42,6 +42,10 @@ dbutils.library.restartPython()
 # MAGIC  
 # MAGIC # download data to destination folder
 # MAGIC wget -N https://raw.githubusercontent.com/syncpete/notebooks/main/dbus_vcpus.csv -P /dbfs/tmp/sync/gradient
+# MAGIC
+# MAGIC  
+# MAGIC # download data to destination folder
+# MAGIC wget -N https://raw.githubusercontent.com/syncpete/notebooks/main/fleet.csv -P /dbfs/tmp/sync/gradient
 
 # COMMAND ----------
 
@@ -109,6 +113,18 @@ sparkInstanceTypesDF = spark.read.csv(csv_filename, sep=',',
 
 sparkInstanceTypesDF.createOrReplaceTempView("dbus_jobs_enterprise")  
 
+fleet_csv_filename = "/tmp/sync/gradient/fleet.csv"
+
+fleet_schema = StructType([
+    StructField("instance_size", StringType()),
+    StructField("vcpus", LongType())
+])
+ 
+sparkFleetDF = spark.read.csv(fleet_csv_filename, sep=',',
+                         schema=fleet_schema, header=True)
+
+sparkFleetDF.createOrReplaceTempView("fleet_size")  
+
 # COMMAND ----------
 
 # MAGIC %sql
@@ -121,6 +137,9 @@ sparkInstanceTypesDF.createOrReplaceTempView("dbus_jobs_enterprise")
 # MAGIC
 # MAGIC drop table if exists gradient_usage_predictions.dbus_jobs_enterprise;
 # MAGIC create table gradient_usage_predictions.dbus_jobs_enterprise as select * from dbus_jobs_enterprise;
+# MAGIC
+# MAGIC drop table if exists gradient_usage_predictions.fleet_size;
+# MAGIC create table gradient_usage_predictions.fleet_size as select * from fleet_size;
 
 # COMMAND ----------
 
@@ -261,9 +280,7 @@ sparkClustersDF.createOrReplaceTempView("cluster_info")
 
 # MAGIC %md
 # MAGIC ## Get Pools for Lookup
-# MAGIC Return information about all pinned clusters, active clusters, up to 200 of the most recently terminated all-purpose clusters in the past 30 days, and up to 30 of the most recently terminated job clusters in the past 30 days.
 # MAGIC
-# MAGIC For example, if there is 1 pinned cluster, 4 active clusters, 45 terminated all-purpose clusters in the past 30 days, and 50 terminated job clusters in the past 30 days, then this API returns the 1 pinned cluster, 4 active clusters, all 45 terminated all-purpose clusters, and the 30 most recently terminated job clusters.
 
 # COMMAND ----------
 
@@ -788,20 +805,19 @@ display(sparkPoolsDF)
 # MAGIC        jri.run_starttime,
 # MAGIC        jri.run_result_state,
 # MAGIC        ajc.driver_node,
-# MAGIC        dd.vcpus driver_vcps,
+# MAGIC        fsd.vcpus driver_vcps,
 # MAGIC        ajc.node_provision_method,
 # MAGIC        ajc.worker_node,
 # MAGIC        case when (ajc.num_workers = 'None') then 0 else ajc.num_workers end worker_nodes,
 # MAGIC        case when (ajc.autoscale_min = 'None') then 0 else ajc.autoscale_min end autoscale_min,
 # MAGIC        case when (ajc.autoscale_max = 'None') then 0 else ajc.autoscale_max end autoscale_max,              
-# MAGIC        dw.vcpus worker_vcps,
+# MAGIC        fsw.vcpus worker_vcps,
 # MAGIC        round((jri.run_endtime - jri.run_starttime) / 1000 / 60,2) duration_min,
-# MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.dbus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.dbus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end),2) dbus,
-# MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * dd.vcpus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end), 2) core_hrs
+# MAGIC        round(((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * fsd.vcpus) + ((jri.run_endtime - jri.run_starttime) / 1000 / 60 / 60 * fsw.vcpus * case when (ajc.node_provision_method = 'Autoscale') then ajc.autoscale_max else ajc.num_workers end), 2) core_hrs
 # MAGIC   from gradient_usage_predictions.job_run_info jri
 # MAGIC   join gradient_usage_predictions.all_job_clusters ajc on jri.job_id = ajc.job_id and jri.task_key = ajc.task_key
-# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dd on dd.instance_type = ajc.driver_node
-# MAGIC   join gradient_usage_predictions.dbus_jobs_enterprise dw on dw.instance_type = ajc.worker_node
+# MAGIC   join gradient_usage_predictions.fleet_size fsd on fsd.instance_size = substring_index(ajc.driver_node, '.', -1)
+# MAGIC   join gradient_usage_predictions.fleet_size fsw on fsw.instance_size = substring_index(ajc.worker_node, '.', -1)
 # MAGIC ;
 # MAGIC  
 
@@ -893,11 +909,8 @@ print(yr_mult)
 calc = f"""select '{str(start_date_truncated)} - {str(end_date_truncated)}',
             count(distinct run_name) jobs,
             count(distinct run_id) runs,
-            round(sum(dbus),2) dbus,
             round(sum(core_hrs),2) core_hrs,
-            round(sum(dbus) * {yr_mult},2) est_annual_job_dbus,
             round(sum(core_hrs) * {yr_mult},2) est_annual_core_hrs,
-            round(sum(dbus) * {yr_mult} * {str(jobs_compute_rate)}, 2) est_annual_job_dbu_cost,
             round(sum(core_hrs) * {yr_mult} * .006,2) est_annual_core_hr_cost
          from gradient_usage_predictions.run_usage
          where date_trunc('DAY', to_date(from_unixtime(run_starttime/1000))) >= '{str(start_date_truncated)}'
