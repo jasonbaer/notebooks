@@ -419,7 +419,6 @@ def serialize_cluster_obj(job_id, run_id, task_key, clusterObj):
 
                 pool_cluster_row = sparkPoolsDF.where(col("instance_pool_id") == clusterObj.instance_pool_id).first()
 
-                print(clusterObj)
                 # If worker is pool driver has to be pool as well.  If no driver_pool specified, it uses same as worker
                 if clusterObj.driver_instance_pool_id is not None:
                         driver_pool_cluster_row = sparkPoolsDF.where(col("instance_pool_id") == clusterObj.driver_instance_pool_id).first()
